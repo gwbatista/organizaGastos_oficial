@@ -1,0 +1,27 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Bill {
+  id         Int      @id @default(autoincrement())
+  title      String
+  amount     Float
+  dueDate    DateTime
+  status     String   @default("pending") // pending ou paid
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  month      Int
+  year       Int
+  createdAt  DateTime @default(now())
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  bills Bill[]
+}
