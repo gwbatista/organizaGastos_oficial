@@ -1,4 +1,13 @@
-import { IsOptional, IsString, IsNumber, IsDateString, IsInt, Min, Max } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class UpdateBillDto {
   @IsOptional()
@@ -27,4 +36,8 @@ export class UpdateBillDto {
   @IsInt()
   @Min(2000)
   year?: number;
+
+  @IsOptional()
+  @IsIn(['single', 'future', 'all'])
+  updateScope?: 'single' | 'future' | 'all';
 }

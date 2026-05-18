@@ -12,12 +12,20 @@ model Bill {
   title      String
   amount     Float
   dueDate    DateTime
-  status     String   @default("pending") // pending ou paid
+  status     String   @default("pending")
   category   Category @relation(fields: [categoryId], references: [id])
   categoryId Int
   month      Int
   year       Int
   createdAt  DateTime @default(now())
+
+  groupId           String?
+  recurrenceType    String  @default("single") // single, installment, recurring, custom
+  installmentNumber Int?
+  installmentTotal  Int?
+
+  @@index([groupId])
+  @@index([month, year])
 }
 
 model Category {
