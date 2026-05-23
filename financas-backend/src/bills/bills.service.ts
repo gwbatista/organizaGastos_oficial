@@ -147,28 +147,70 @@ export class BillsService {
 
   async update(id: number, data: UpdateBillDto) {
     const { updateScope = 'single', dueDate, ...rest } = data;
-    const where = await this.getScopeWhere(id, updateScope);
 
-    const updateData: any = { ...rest };
+    const bill = await this.prisma.bill.findUnique({
+      where: { id },
+    });
 
-    if (dueDate) {
-      const newDate = new Date(dueDate);
-      updateData.dueDate = newDate;
-      updateData.month = newDate.getMonth() + 1;
-      updateData.year = newDate.getFullYear();
+    if (!bill) {
+      throw new NotFoundException('Conta não encontrada');
     }
 
-    if (updateScope === 'single') {
+    if (updateScope === 'single' || !bill.groupId) {
+      const updateData: any = { ...rest };
+
+      if (dueDate) {
+        const newDate = new Date(dueDate);
+        updateData.dueDate = newDate;
+        updateData.month = newDate.getMonth() + 1;
+        updateData.year = newDate.getFullYear();
+      }
+
       return this.prisma.bill.update({
         where: { id },
         data: updateData,
       });
     }
 
-    return this.prisma.bill.updateMany({
+    const where =
+      updateScope === 'all'
+        ? { groupId: bill.groupId }
+        : {
+          groupId: bill.groupId,
+          OR: [
+            { year: { gt: bill.year } },
+            {
+              year: bill.year,
+              month: { gte: bill.month },
+            },
+          ],
+        };
+
+    const billsToUpdate = await this.prisma.bill.findMany({
       where,
-      data: updateData,
     });
+
+    const selectedDay = dueDate ? new Date(dueDate).getDate() : null;
+
+    return this.prisma.$transaction(
+      billsToUpdate.map((item) => {
+        const updateData: any = { ...rest };
+
+        if (selectedDay) {
+          const newDate = new Date(item.dueDate);
+          newDate.setDate(selectedDay);
+
+          updateData.dueDate = newDate;
+          updateData.month = newDate.getMonth() + 1;
+          updateData.year = newDate.getFullYear();
+        }
+
+        return this.prisma.bill.update({
+          where: { id: item.id },
+          data: updateData,
+        });
+      }),
+    );
   }
 
   async remove(id: number, scope: 'single' | 'future' | 'all') {
